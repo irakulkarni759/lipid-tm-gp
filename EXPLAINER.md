@@ -105,8 +105,18 @@ python3 ask.py --list          the common ones
 python3 ask.py --find SM       search by name
 ```
 
-It knows 341 lipids. You can mix two, three, or more, and the percentages do not
-have to be exact because it rescales them.
+You can mix two, three, or more, and the percentages do not have to be exact
+because it rescales them.
+
+It accepts 341 lipids, but it is not equally good at all of them. Nine have been
+measured in real mixtures and those answers are solid: **DPPC, DMPC, DOPC, DSPC,
+POPC, Cholesterol, DMPG, PSM, SSM**. Another thirty or so are familiar lipids
+that have only ever been measured on their own, so a mixture containing one is a
+genuine guess. The rest are obscure entries from a literature compilation.
+
+You do not have to memorise which is which. Ask, and read how wide the range
+comes back. A narrow range means it has seen things like this before. A wide one
+means go and measure it.
 
 Add `--plate` to any question to get the answer on our plate-reader scale
 instead of the calorimetry scale that published values use.

@@ -36,6 +36,61 @@ predict_tm([(SMILES["DMPC"], 0.65), (SMILES["DPPC"], 0.35)],
            family="calorimetry")     # -> (33.9, 6.6)  degrees C, 1 s.d.
 ```
 
+## Which lipids you can ask about
+
+`ask.py` accepts 341 lipids, but they are not equally supported. Three tiers.
+
+**Tier 1, trust these.** Measured in real mixtures, so mixture predictions are
+on solid ground.
+
+| lipid | measurements behind it |
+|---|---|
+| DPPC | 38 |
+| DMPC | 28 |
+| DOPC | 7 |
+| DSPC | 7 |
+| POPC | 7 |
+| Cholesterol | 5 |
+| DMPG | 3 |
+| PSM | 1 |
+| SSM | 1 |
+
+**Tier 2, ask but read the interval.** One or two measurements each, always as a
+*pure* lipid, never mixed with anything. The model knows roughly where each melts
+on its own; any mixture containing one is an extrapolation.
+
+- PC: DLPC
+- PE: DLPE, DMPE, DPPE, DSPE, DOPE, POPE
+- PG: DLPG, DPPG, DSPG, DOPG, POPG
+- PS: DLPS, DMPS, DPPS, DSPS, DOPS, POPS
+- PA: DLPA, DMPA, DPPA, DSPA, DOPA, POPA
+
+**Tier 3, the long tail.** ~300 more from the Marsh compilation: odd chain
+lengths, cardiolipins, glycolipids, sphingomyelins. Findable, but thin.
+
+```bash
+python3 ask.py --find PG       # search by name
+python3 ask.py --find 18:1     # or by chain spec
+```
+
+### Naming, if the abbreviations are unfamiliar
+
+First letter is tail length (**L**=12, **M**=14, **P**=16, **S**=18 carbons;
+**O** and **PO** mean a kinked unsaturated tail). The last two letters are the
+headgroup (**PC**, **PE**, **PG**, **PS**, **PA**). So DPPC is 16-carbon tails
+with a PC head.
+
+### Try it
+
+```bash
+python3 ask.py DMPC 60 DPPC 40      # two Tier 1 lipids
+python3 ask.py DPPC 50 DPPG 50      # Tier 1 + Tier 2
+```
+
+The second interval is noticeably wider. That widening is the model reporting
+that it is on thinner ice, and it is the most useful thing it does.
+
+
 ## How well it works
 
 Validated by leave-one-system-out, holding out an entire lipid system at a time.
