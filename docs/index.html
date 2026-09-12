@@ -97,17 +97,23 @@ footer{margin-top:36px;font-size:13.5px;color:var(--muted);text-align:center}
   </div>
 
   <div class="tiers">
-    <span class="dot" style="background:var(--ok)"></span><b>Solid</b> means the
-    lipid has been measured in real mixtures.
-    <span class="dot" style="background:var(--warm);margin-left:12px"></span><b>Thin</b>
-    means it has only ever been measured on its own, so a mixture containing it
-    is an extrapolation. The interval widens accordingly.
+    <b>What drives the interval</b> is how <i>alike</i> the two lipids are, not
+    how much data each one has on its own. Two lipids with the same headgroup and
+    similar tail lengths land in territory the model knows well, so DPPE + DSPE is
+    just as confident as DPPC + DSPC. Pair up two lipids that differ structurally,
+    such as a one-tailed sphingomyelin with a two-tailed phospholipid, and the
+    interval blows up, because only 23 genuine mixtures exist in the training data
+    and almost none of them look like that.
+    <br><br>
+    The <span class="dot" style="background:var(--ok)"></span><b>solid</b> and
+    <span class="dot" style="background:var(--warm)"></span><b>thin</b> tags tell
+    you how much data stands behind each lipid <i>individually</i>. Useful to know,
+    but read the interval, not the tag.
   </div>
 
   <div class="note">
-    Shown on the DSC scale, which is what published values use. Our plate-reader
-    assay reads about 9&nbsp;°C hotter; that reading is
-    <span id="plate">—</span>.
+    Shown on the DSC scale, which is what published values use. The same mixture
+    on our plate-reader scale reads <span id="plate">—</span><span id="offnote"></span>
   </div>
 </div>
 
@@ -181,7 +187,15 @@ function update(){
   document.getElementById('range').textContent =
     `give or take ${sd.toFixed(1)}, so likely between ` +
     `${Math.round(tm-1.96*sd)} and ${Math.round(tm+1.96*sd)} °C`;
+  const off = plate - tm;
   document.getElementById('plate').textContent = plate.toFixed(1) + ' °C';
+  document.getElementById('offnote').innerHTML = Math.abs(off) < 1.5
+    ? ', essentially the same. We only ever ran the plate assay on DMPC/DPPC, so '
+      + 'away from those lipids the model has no evidence of an offset and does '
+      + 'not invent one.'
+    : `, i.e. ${off > 0 ? '+' : ''}${off.toFixed(1)}\u00a0°C. The offset is `
+      + 'largest near DMPC/DPPC, which is the only system we ran the plate assay '
+      + 'on, and shrinks toward zero elsewhere where there is no evidence for it.';
 
   const badge = document.getElementById('badge');
   if (sd < 5.5)      badge.innerHTML = '<span class="badge b-ok">the model is confident</span>';
