@@ -3,6 +3,10 @@ data/*.csv
 data/gp_model.pkl
 figures/*.png
 
+# the web page's assets ARE tracked, it is published from docs/
+!docs/*.png
+!docs/predictions.json
+
 # The source spreadsheet IS tracked (data/raw/) so the pipeline is reproducible.
 !data/raw/
 

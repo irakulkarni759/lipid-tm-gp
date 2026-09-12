@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lipid melting temperature predictor</title>
+<style>
+:root{
+  --bg:#fbfbfa; --card:#fff; --ink:#1a1a19; --muted:#6b6b68; --line:#e4e4e1;
+  --accent:#1f4e9c; --accent-soft:#e8eff9; --warm:#c2410c; --ok:#15803d;
+  --shadow:0 1px 2px rgba(0,0,0,.05),0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14141a; --card:#1c1c24; --ink:#eceaf0; --muted:#9a99a5; --line:#2e2e39;
+  --accent:#7aa7ee; --accent-soft:#1e2a3d; --warm:#fb923c; --ok:#4ade80;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 20px rgba(0,0,0,.25);
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.6 ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:940px;margin:0 auto;padding:40px 22px 80px}
+header{margin-bottom:32px}
+h1{font-size:26px;line-height:1.25;margin:0 0 6px;letter-spacing:-.02em}
+.sub{color:var(--muted);margin:0;font-size:15px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:24px;box-shadow:var(--shadow);margin-bottom:22px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.07em;
+  color:var(--muted);margin:0 0 16px;font-weight:600}
+.picker{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:620px){.picker{grid-template-columns:1fr}}
+label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;
+  font-weight:600;letter-spacing:.02em}
+select,input[type=number]{width:100%;padding:9px 11px;border:1px solid var(--line);
+  border-radius:8px;background:var(--bg);color:var(--ink);font-size:15px;
+  font-family:inherit}
+select:focus,input:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.mixrow{display:flex;align-items:center;gap:14px;margin-top:20px}
+input[type=range]{flex:1;accent-color:var(--accent)}
+.pct{font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted);
+  min-width:112px}
+.result{margin-top:24px;padding:22px;border-radius:11px;
+  background:var(--accent-soft);border:1px solid var(--line)}
+.big{font-size:40px;font-weight:600;letter-spacing:-.03em;line-height:1.05;
+  font-variant-numeric:tabular-nums}
+.big span{font-size:20px;font-weight:400;color:var(--muted)}
+.range{color:var(--muted);margin-top:7px;font-size:14px}
+.badge{display:inline-block;margin-top:13px;padding:4px 11px;border-radius:20px;
+  font-size:12.5px;font-weight:600}
+.b-ok{background:rgba(21,128,61,.13);color:var(--ok)}
+.b-warn{background:rgba(194,65,12,.13);color:var(--warm)}
+svg{display:block;width:100%;height:auto;overflow:visible}
+.tiers{font-size:13.5px;color:var(--muted);margin-top:14px;line-height:1.7}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;
+  margin-right:5px;vertical-align:middle}
+figure{margin:0 0 26px}
+figure:last-child{margin-bottom:0}
+figcaption{font-size:13.5px;color:var(--muted);margin-top:9px}
+img{max-width:100%;border:1px solid var(--line);border-radius:9px;background:#fff}
+a{color:var(--accent)}
+footer{margin-top:36px;font-size:13.5px;color:var(--muted);text-align:center}
+.note{font-size:13.5px;color:var(--muted);margin-top:18px;padding-top:16px;
+  border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Lipid melting temperature predictor</h1>
+  <p class="sub">Pick two lipids and a ratio. Get the predicted gel-to-fluid
+  transition temperature, with an honest estimate of how sure the model is.</p>
+</header>
+
+<div class="card">
+  <h2>Build a mixture</h2>
+  <div class="picker">
+    <div>
+      <label for="a">First lipid</label>
+      <select id="a"></select>
+    </div>
+    <div>
+      <label for="b">Second lipid</label>
+      <select id="b"></select>
+    </div>
+  </div>
+
+  <div class="mixrow">
+    <input type="range" id="mix" min="0" max="100" step="5" value="50">
+    <div class="pct" id="pctlabel"></div>
+  </div>
+
+  <div class="result">
+    <div class="big" id="tm">—</div>
+    <div class="range" id="range"></div>
+    <div id="badge"></div>
+  </div>
+
+  <div class="tiers">
+    <span class="dot" style="background:var(--ok)"></span><b>Solid</b> means the
+    lipid has been measured in real mixtures.
+    <span class="dot" style="background:var(--warm);margin-left:12px"></span><b>Thin</b>
+    means it has only ever been measured on its own, so a mixture containing it
+    is an extrapolation. The interval widens accordingly.
+  </div>
+
+  <div class="note">
+    Shown on the DSC scale, which is what published values use. Our plate-reader
+    assay reads about 9&nbsp;°C hotter; that reading is
+    <span id="plate">—</span>.
+  </div>
+</div>
+
+<div class="card">
+  <h2>Across the whole composition range</h2>
+  <div id="chart"></div>
+</div>
+
+<div class="card">
+  <h2>How the model was checked</h2>
+  <figure>
+    <img src="dmpc_dppc_binary.png" alt="Predicted Tm across DMPC/DPPC with uncertainty band">
+    <figcaption>DMPC/DPPC on both instrument scales. Blue line is the prediction,
+    shaded band is the 95% interval, red points are our plate-reader data and
+    squares are published values.</figcaption>
+  </figure>
+  <figure>
+    <img src="validation.png" alt="Predicted versus measured, and calibration histogram">
+    <figcaption>Left, predicted against measured for every measurement, each one
+    held out from training. Right, the calibration check: the true answer fell
+    inside the stated 95% interval 96% of the time.</figcaption>
+  </figure>
+</div>
+
+<footer>
+  Mean absolute error 3.9&nbsp;°C over 405 held-out measurements &middot;
+  <a href="https://github.com/irakulkarni759/lipid-tm-gp">source and data on GitHub</a>
+</footer>
+</div>
+
+<script>
+const S = {};
+fetch('predictions.json').then(r=>r.json()).then(d=>{
+  S.d = d;
+  const selA = document.getElementById('a'), selB = document.getElementById('b');
+  for (const sel of [selA, selB]) {
+    d.lipids.forEach(l=>{
+      const o = document.createElement('option');
+      o.value = l.name;
+      o.textContent = l.name + (l.tier===1 ? '  ·  solid' : '  ·  thin');
+      sel.appendChild(o);
+    });
+  }
+  selA.value = 'DMPC'; selB.value = 'DPPC';
+  [selA, selB].forEach(s=>s.addEventListener('change', update));
+  document.getElementById('mix').addEventListener('input', update);
+  update();
+});
+
+function series(a, b){
+  // pairs are stored once, keyed by the order they were generated in
+  const d = S.d;
+  if (d.pairs[a+'|'+b]) return {rows: d.pairs[a+'|'+b], flip: false};
+  return {rows: d.pairs[b+'|'+a], flip: true};
+}
+
+function update(){
+  const a = document.getElementById('a').value,
+        b = document.getElementById('b').value,
+        pctB = +document.getElementById('mix').value;
+  const {rows, flip} = series(a, b);
+  if (!rows) return;
+  // stored grid runs 0..100 in the SECOND lipid of the stored key
+  const idx = i => flip ? (rows.length - 1 - i) : i;
+  const i = Math.round(pctB / S.d.step);
+  const [tm, sd, plate] = rows[idx(i)];
+
+  document.getElementById('pctlabel').textContent =
+    `${a} ${100-pctB}% / ${b} ${pctB}%`;
+  document.getElementById('tm').innerHTML = `${tm.toFixed(1)} <span>°C</span>`;
+  document.getElementById('range').textContent =
+    `give or take ${sd.toFixed(1)}, so likely between ` +
+    `${Math.round(tm-1.96*sd)} and ${Math.round(tm+1.96*sd)} °C`;
+  document.getElementById('plate').textContent = plate.toFixed(1) + ' °C';
+
+  const badge = document.getElementById('badge');
+  if (sd < 5.5)      badge.innerHTML = '<span class="badge b-ok">the model is confident</span>';
+  else if (sd < 9)   badge.innerHTML = '<span class="badge b-ok">reasonably sure</span>';
+  else if (sd < 15)  badge.innerHTML = '<span class="badge b-warn">not very sure</span>';
+  else               badge.innerHTML = '<span class="badge b-warn">basically guessing — go measure it</span>';
+
+  drawChart(a, b, rows, flip, pctB);
+}
+
+function drawChart(a, b, rows, flip, pctB){
+  const W=860,H=300,L=52,R=16,T=16,B=42;
+  const n = rows.length, step = S.d.step;
+  const pts = rows.map((r,i)=>{
+    const j = flip ? (n-1-i) : i;
+    return {x: flip ? 100-(i*step) : i*step, tm: rows[i][0], sd: rows[i][1]};
+  });
+  pts.sort((p,q)=>p.x-q.x);
+  const los = pts.map(p=>p.tm-1.96*p.sd), his = pts.map(p=>p.tm+1.96*p.sd);
+  let lo = Math.min(...los), hi = Math.max(...his);
+  const pad = (hi-lo)*.06; lo-=pad; hi+=pad;
+  const X = v => L + (v/100)*(W-L-R);
+  const Y = v => T + (1-(v-lo)/(hi-lo))*(H-T-B);
+
+  const band = pts.map(p=>`${X(p.x)},${Y(p.tm+1.96*p.sd)}`).join(' ') + ' ' +
+    pts.slice().reverse().map(p=>`${X(p.x)},${Y(p.tm-1.96*p.sd)}`).join(' ');
+  const line = pts.map((p,i)=>`${i?'L':'M'}${X(p.x)},${Y(p.tm)}`).join('');
+
+  const ticks=[];
+  const tstep = (hi-lo)>60?20:(hi-lo)>25?10:5;
+  for(let v=Math.ceil(lo/tstep)*tstep; v<=hi; v+=tstep) ticks.push(v);
+
+  const cur = pts.find(p=>p.x===pctB) || pts[0];
+
+  document.getElementById('chart').innerHTML = `
+  <svg viewBox="0 0 ${W} ${H}" role="img"
+       aria-label="Predicted melting temperature across the composition range">
+    ${ticks.map(v=>`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}"
+        stroke="var(--line)" stroke-width="1"/>
+      <text x="${L-10}" y="${Y(v)+4}" text-anchor="end" font-size="12"
+        fill="var(--muted)">${v}</text>`).join('')}
+    <polygon points="${band}" fill="var(--accent)" opacity=".16"/>
+    <path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2.5"
+      stroke-linejoin="round"/>
+    <line x1="${X(cur.x)}" x2="${X(cur.x)}" y1="${T}" y2="${H-B}"
+      stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3"/>
+    <circle cx="${X(cur.x)}" cy="${Y(cur.tm)}" r="5.5" fill="var(--accent)"
+      stroke="var(--card)" stroke-width="2.5"/>
+    ${[0,25,50,75,100].map(v=>`<text x="${X(v)}" y="${H-18}" text-anchor="middle"
+        font-size="12" fill="var(--muted)">${v}%</text>`).join('')}
+    <text x="${(L+W-R)/2}" y="${H-2}" text-anchor="middle" font-size="12.5"
+      fill="var(--muted)">mole percent ${b}</text>
+    <text transform="translate(14,${(T+H-B)/2}) rotate(-90)" text-anchor="middle"
+      font-size="12.5" fill="var(--muted)">melting temperature (°C)</text>
+  </svg>`;
+}
+</script>
+</body>
+</html>
