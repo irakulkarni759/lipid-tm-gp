@@ -7,6 +7,11 @@ how confident it is in every prediction.
 Built around a DMPC/DPPC plate-reader series measured in house, combined with
 ~400 Tm values compiled from the literature.
 
+### → [Try it in your browser](https://irakulkarni759.github.io/lipid-tm-gp/)
+
+Pick two lipids, drag the ratio slider, read the predicted temperature and how
+sure the model is. No install needed.
+
 ## Quick start
 
 ```bash

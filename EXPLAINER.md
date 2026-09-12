@@ -2,6 +2,10 @@
 
 No background needed. No maths.
 
+### → [Try it in your browser](https://irakulkarni759.github.io/lipid-tm-gp/)
+
+Pick two lipids, drag the slider, read the answer. Nothing to install.
+
 ## The problem
 
 Cell membranes are made of fatty molecules called lipids. A membrane has a
