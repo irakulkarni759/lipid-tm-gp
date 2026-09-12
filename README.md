@@ -14,7 +14,19 @@ pip install -r requirements.txt
 python3 run_all.py              # rebuilds everything from the spreadsheet
 ```
 
-Ask it a question:
+Ask it a question from the command line:
+
+```bash
+python3 ask.py DMPC 70 DPPC 30          # what does this melt at?
+python3 ask.py --target 42 DPPC DSPC    # what melts at 42 C?
+python3 ask.py --list                   # which lipids does it know?
+python3 ask.py --find SM                # search by name
+```
+
+Add `--plate` for the plate-reader scale instead of the DSC scale that published
+values use. 341 lipids are available; mixtures may have any number of components.
+
+Or from Python:
 
 ```python
 import sys; sys.path.insert(0, "src")
@@ -23,9 +35,6 @@ from predict import predict_tm, SMILES
 predict_tm([(SMILES["DMPC"], 0.65), (SMILES["DPPC"], 0.35)],
            family="calorimetry")     # -> (33.9, 6.6)  degrees C, 1 s.d.
 ```
-
-`family="calorimetry"` returns the DSC-equivalent value comparable to published
-work. `family="laurdan_plate"` returns what our plate-reader assay should read.
 
 ## How well it works
 

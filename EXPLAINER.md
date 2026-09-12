@@ -62,6 +62,55 @@ answer really does fall within 5 degrees about 95 times out of 100. Its
 confidence is honest. A program that is confidently wrong is worse than useless,
 and this one admits when it is guessing.
 
+## How to actually use it
+
+Open a terminal in this folder. There are three things you can ask.
+
+**1. What does this mixture melt at?**
+
+```
+python3 ask.py DMPC 70 DPPC 30
+```
+
+```
+  DMPC 70%  /  DPPC 30%
+
+    melts at about 28.8 C, give or take 4.8
+    likely between 19 and 38 C
+    the model is confident
+```
+
+**2. What should I mix to hit a target temperature?**
+
+```
+python3 ask.py --target 42 DPPC DSPC
+```
+
+```
+To melt at 42 C, mix:
+
+    DPPC  94%
+    DSPC   6%
+
+Predicted 42.0 C, give or take 4.7.
+```
+
+If the target is impossible for that pair it says so instead of inventing an
+answer.
+
+**3. Which lipids does it know?**
+
+```
+python3 ask.py --list          the common ones
+python3 ask.py --find SM       search by name
+```
+
+It knows 341 lipids. You can mix two, three, or more, and the percentages do not
+have to be exact because it rescales them.
+
+Add `--plate` to any question to get the answer on our plate-reader scale
+instead of the calorimetry scale that published values use.
+
 ## What it is good for
 
 - Trying out mixtures on a laptop before committing lab time to them
