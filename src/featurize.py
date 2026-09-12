@@ -51,6 +51,13 @@ def main():
     usable = df[df.has_tm & df.meas_smiles_complete & ok].copy()
     usable = usable[usable[DESC_COLS].notna().all(axis=1)]
 
+    # Counterion travels with the measurement, not the molecule, so it is
+    # attached here rather than in the per-lipid descriptor table.
+    ION_COLS = ["ion_valency", "ion_divalent"]
+    for c in ION_COLS:
+        if c not in usable.columns:
+            usable[c] = 0
+
     recs = []
     for mid, g in usable.groupby("meas_id"):
         x = g["mole_frac"].to_numpy(float)
@@ -61,12 +68,17 @@ def main():
         rec = {"meas_id": mid}
         rec.update({f"mean_{c}": v for c, v in zip(DESC_COLS, mean)})
         rec.update({f"spread_{c}": v for c, v in zip(DESC_COLS, spread)})
+        for c in ION_COLS:
+            rec[f"mean_{c}"] = float(np.average(g[c].to_numpy(float), weights=x))
         rec["n_components"] = len(g)
         rec["tm_c"] = g["tm_c"].iloc[0]
         rec["method"] = g["method"].iloc[0]
         rec["dataset"] = g["dataset"].iloc[0]
         rec["reliable"] = bool(g["reliable"].iloc[0])
         rec["system"] = "+".join(sorted(g["lipid"]))
+        rec["counterion"] = (g.loc[g["counterion"] != "none", "counterion"].iloc[0]
+                             if "counterion" in g.columns
+                             and (g["counterion"] != "none").any() else "none")
         rec["paper"] = g["paper"].iloc[0]
         rec["composition"] = " / ".join(
             f"{l} {p:.3g}%" for l, p in zip(g["lipid"], g["mole_frac"] * 100))

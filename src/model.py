@@ -49,6 +49,14 @@ def load(drop_unreliable=True):
     if drop_unreliable:
         mix = mix[mix.reliable]
     mix = mix.dropna(subset=["tm_c"])
+    # Specified-counterion rows stay OUT of training. The counterion is real
+    # information and it is kept in the dataset, but there is at most one
+    # measurement per ion and leave-one-system-out removes that system anyway,
+    # so the model cannot learn the effect and can only be misled by it.
+    # Measured: including them leaves error on everything else unchanged
+    # (3.91 vs 3.89 C) while the ion rows themselves miss by 13.4 C.
+    if "counterion" in mix.columns:
+        mix = mix[mix["counterion"] == "none"]
     mix["family"] = mix["method"].map(method_family)
     return mix.reset_index(drop=True)
 

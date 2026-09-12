@@ -101,10 +101,10 @@ both sides.
 | metric | value |
 |---|---|
 | mean absolute error | **3.9 °C** |
-| RMSE | 6.2 °C |
-| 95% interval coverage | 95.8% (target 95%) |
-| mixtures only (n=23) | 5.6 °C |
-| pure lipids only (n=382) | 3.8 °C |
+| RMSE | 6.4 °C |
+| 95% interval coverage | 96.5% (target 95%) |
+| mixtures only (n=23) | 5.0 °C |
+| pure lipids only (n=379) | 3.9 °C |
 
 Recovers values it had to reason toward: pure DMPC 23.5 (published 23.9), pure
 DPPC 41.3 (41.4), DMPC/DSPC 50:50 41.3 (42.0).
@@ -159,7 +159,20 @@ in `identity_reason`.
    excluding 23 measurements including the PEGylated liposome series.
    DSPE-PEG2kDa is a polymer and is not cleanly representable as one SMILES.
 
-Fixing 2 and 3 upstream would recover ~30 measurements.
+**On point 2**, the counterion turned out to be recorded after all, in the Notes
+column (`(16:0)4CL.Ca`). `src/build_dataset.py` now parses it into `counterion`,
+`ion_valency` and `ion_divalent`, and the QC pass distinguishes a *salt form* of
+a lipid (same molecule, recoverable) from a *conjugate* (different molecule,
+still quarantined). That recovered 10 measurements into the dataset.
+
+Those rows are nevertheless held **out of training**, because there is at most
+one measurement per ion and leave-one-system-out removes that system anyway.
+Measured directly: including them left the error on everything else unchanged
+(3.91 vs 3.89 °C) while the ion rows themselves missed by 13.4 °C. Salt form is
+therefore captured and visible in the data, but the model does not pretend to
+predict it. Several distinct ions also collapse to the same valency, so
+(16:0)&#8324;CL at 39.5 °C (Na), 54.3 °C (K) and 57.8 °C (NH&#8324;) are
+currently indistinguishable to the features.
 
 ## Limits
 

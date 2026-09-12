@@ -154,6 +154,19 @@ def main():
     # mole fraction, renormalised so each measurement sums to exactly 1
     long["mole_frac"] = long["pct"] / long["meas_id"].map(sums)
 
+    # Counterion, parsed out of the Marsh notation in the Notes column. It is
+    # already recorded there; it was simply never given to the model. Divalent
+    # cations bridge adjacent headgroups and shift Tm enormously: (16:0)4CL
+    # melts at 39.5 C as the Na2 salt and 88.3 C as the Ca salt.
+    import re as _re
+    _ION = _re.compile(r"Marsh notation:.*\.\(?(H|Li|Na|K|NH4|Rb|Cs|Mg|Ca|Ba|Sr)\)?\d*[a-z]?$")
+    _VALENCY = {"H": 1, "Li": 1, "Na": 1, "K": 1, "NH4": 1, "Rb": 1, "Cs": 1,
+                "Mg": 2, "Ca": 2, "Ba": 2, "Sr": 2}
+    ion = long["notes"].astype(str).str.extract(_ION)[0]
+    long["counterion"] = ion.fillna("none")
+    long["ion_valency"] = long["counterion"].map(_VALENCY).fillna(0).astype(int)
+    long["ion_divalent"] = (long["ion_valency"] == 2).astype(int)
+
     long["n_components"] = long.groupby("meas_id")["lipid"].transform("size")
     long["has_tm"] = long["tm_c"].notna()
 

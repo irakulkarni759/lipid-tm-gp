@@ -19,9 +19,17 @@ import pandas as pd
 # Deliberately narrow. Double-bond position markers (18:1c/\u22069) are legitimate
 # distinct molecules with their own SMILES and must NOT be flagged here; a
 # genuinely mismatched one is caught by the chain-consistency test instead.
-MODIFIER = re.compile(
-    r"(\.[A-Z][a-z]?\d?|-chol|biotin|Lys|\bO-|\bdiether|\blyso)",
-    re.IGNORECASE)
+#
+# CONJUGATE = a chemically different molecule wearing the same label. The
+# structure we hold is wrong for it, so it stays quarantined.
+CONJUGATE = re.compile(r"(-chol|biotin|Lys|\bO-|\bdiether|\blyso)", re.IGNORECASE)
+
+# COUNTERION = the SAME lipid with a different salt form. The structure is
+# right, only the counterion differs, and Marsh records it after a dot. These
+# are recoverable once the counterion is passed to the model as a feature.
+COUNTERION = re.compile(r"\.\(?(H|Li|Na|K|NH4|Rb|Cs|Mg|Ca|Ba|Sr|Tris)\)?(\d*)[a-z]?$",
+                        re.IGNORECASE)
+MODIFIER = CONJUGATE
 # Trailing bare 0 / 9.0 style codes are Marsh's pH / ionisation-state markers.
 STATE_CODE = re.compile(r"\d+\.\d+$|(?<=[A-Za-z])0$")
 CHAIN = re.compile(r"(\d+):(\d+)")
@@ -63,8 +71,16 @@ def run(long, lipdesc):
         notation = row.marsh
         if not isinstance(notation, str) or not notation.strip():
             flags.append(False); reasons.append(""); continue
-        if MODIFIER.search(notation) or STATE_CODE.search(notation):
-            flags.append(True); reasons.append("modified/ionisation variant"); continue
+        if CONJUGATE.search(notation):
+            flags.append(True); reasons.append("conjugate, structure differs"); continue
+        if COUNTERION.search(notation):
+            # same molecule, different salt. recoverable; counterion becomes a feature.
+            flags.append(False); reasons.append(""); continue
+        if STATE_CODE.search(notation):
+            # Marsh ionisation-state codes. Every such row in this sheet carries
+            # Tm exactly 0.0, which is a missing-value placeholder, not a
+            # measurement, so these stay out.
+            flags.append(True); reasons.append("ionisation-state placeholder"); continue
         nc = notation_chains(notation)
         if nc is None or np.isnan(row.chainc_ref):
             flags.append(False); reasons.append(""); continue
@@ -84,8 +100,11 @@ def run(long, lipdesc):
     # Residual check: after the above, any SMILES still claimed by two different
     # Marsh notations is an unresolved collision (e.g. alpha vs beta anomers,
     # which share a formula and are indistinguishable to these descriptors).
-    ok = df[~df.identity_suspect].dropna(subset=["marsh", "smiles"])
-    n_names = ok.groupby("smiles")["marsh"].nunique()
+    ok = df[~df.identity_suspect].dropna(subset=["marsh", "smiles"]).copy()
+    # strip the salt suffix first, so Na2/K2/Ca forms of one lipid are not
+    # mistaken for different molecules sharing a structure
+    ok["base"] = ok["marsh"].str.replace(COUNTERION, "", regex=True)
+    n_names = ok.groupby("smiles")["base"].nunique()
     collided = set(n_names[n_names > 1].index)
     hit = df["smiles"].isin(collided) & ~df["identity_suspect"]
     df.loc[hit, "identity_suspect"] = True

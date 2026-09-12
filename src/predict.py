@@ -44,6 +44,11 @@ def features(components):
     spread = x @ np.abs(D - mean)
     out = {f"mean_{c}": v for c, v in zip(DESC_COLS, mean)}
     out.update({f"spread_{c}": v for c, v in zip(DESC_COLS, spread)})
+    # Counterion is a property of the measurement, not the molecule. Anything
+    # asked of the model here is assumed to be in ordinary buffer with no
+    # specified salt form, which is what the training set is.
+    out["mean_ion_valency"] = 0.0
+    out["mean_ion_divalent"] = 0.0
     return out
 
 
